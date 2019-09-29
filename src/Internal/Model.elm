@@ -301,6 +301,7 @@ type alias Angle =
 type Attribute aligned msg
     = NoAttribute
     | Attr (VirtualDom.Attribute msg)
+    | BatchAttributes (List (Attribute aligned msg))
     | Describe Description
       -- invalidation key and literal class
     | Class Flag String
@@ -933,6 +934,9 @@ gatherAttrRecursive classes node has transform styles attrs children elementAttr
                 Attr actualAttribute ->
                     gatherAttrRecursive classes node has transform styles (actualAttribute :: attrs) children remaining
 
+                BatchAttributes batch ->
+                    gatherAttrRecursive classes node has transform styles attrs children <| batch ++ remaining
+
                 StyleClass flag style ->
                     if Flag.present flag has then
                         gatherAttrRecursive classes node has transform styles attrs children remaining
@@ -1555,6 +1559,7 @@ element : LayoutContext -> NodeName -> List (Attribute aligned msg) -> Children 
 element context node attributes children =
     attributes
         |> List.reverse
+        |> List.concatMap (\
         |> gatherAttrRecursive (contextClasses context) node Flag.none untransformed [] [] NoNearbyChildren
         |> createElement context children
 
@@ -1857,6 +1862,9 @@ filter attrs =
 
                     Attr attr ->
                         ( x :: found, has )
+
+                    BatchAttributes batch ->
+                        ( filter <| batch ++ found , has ) -- doesn't update `has` correctly
 
                     StyleClass _ style ->
                         ( x :: found, has )
@@ -3384,6 +3392,9 @@ mapAttr fn attr =
         Attr htmlAttr ->
             Attr (VirtualDom.mapAttribute fn htmlAttr)
 
+        BatchAttributes batch ->
+            BatchAttributes <| List.map (mapAttr fn) batch
+
         TransformComponent fl trans ->
             TransformComponent fl trans
 
@@ -3421,6 +3432,9 @@ mapAttrFromStyle fn attr =
 
         Attr htmlAttr ->
             Attr (VirtualDom.mapAttribute fn htmlAttr)
+
+        BatchAttributes batch ->
+            BatchAttributes <| List.map (mapAttrFromStyle fn) batch
 
         TransformComponent fl trans ->
             TransformComponent fl trans

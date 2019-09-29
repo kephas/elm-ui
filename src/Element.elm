@@ -582,6 +582,16 @@ el attrs child =
         (Internal.Unkeyed [ child ])
 
 
+{-| Batch several attributes together
+
+You can use the result of `batch` as if it was a single atttribute.
+
+-}
+batch : List (Attribute msg) -> Attribute msg
+batch attrs =
+    Internal.BatchAttributes attrs
+
+
 {-| -}
 row : List (Attribute msg) -> List (Element msg) -> Element msg
 row attrs children =
